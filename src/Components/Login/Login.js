@@ -2,45 +2,47 @@ import Button from "../UI/Button/Button";
 import styles from "./Login.module.css";
 import Card from "../UI/Card/Card";
 import { useState, useReducer, useEffect } from "react";
+import {useContext} from 'react';
+import AuthContext from "../../store/auth-context";
+
+
+
 function Login(props) {
+  const ctx = useContext(AuthContext);
   const [isFormValid, setFormValid] = useState(false);
 
   const emailStateReducer = (state, action) => {
     if (action.type === "USER_INPUT") {
-      return { val: action.val, isvalid: action.val.includes("@") };
+      return { val: action.val, isvalid: action.val.includes("@") ,classes : action.val.includes('@') ? styles.control : styles.control + " " + styles.invalid};
     }
     // if(action.type === 'INPUT_BLUR'){
     //   return {val: state.val, isvalid : state.val.includes('@')}
     // }
-    return { val: "", isvalid: true };
+    return { val: "", isvalid: false ,classes : styles.control };
   };
   const passwordStateReducer = (state, action) => {
     if (action.type === "USER_INPUT") {
-      return { val: action.val, isvalid: action.val.trim().length > 6 };
+      return { val: action.val, isvalid: action.val.trim().length > 6, classes : action.val.trim().length > 6 ? styles.control : styles.control + " " + styles.invalid };
     }
-    return { val: "", isvalid: true };
+    return { val: "", isvalid: false, classes : styles.control};
   };
   const [emailState, dispatchEmail] = useReducer(emailStateReducer, {
     // Email State Reducer
     val: "",
-    isvalid: true,
+    isvalid: null,
+    classes : styles.control
   });
   const [passwordState, dispatchPassword] = useReducer(passwordStateReducer, {
     // Password State Reducer
     val: "",
-    isvalid: true,
+    isvalid: null,
+    classes : styles.control
   });
 
-  const { isvalid: emailValid } = emailState;
-  const { isvalid: passValid } = passwordState;
-  useEffect(() => {                                                                             // isFormValid should be checked by useEffect as it is depending on 2 other states.
-    if (emailState.val === "" || passwordState.val === "") {
-      // This is for the initial state when emailState.isvalid and passwordState.isvalid are true but still we want button to not glow up.
-      setFormValid(false);
-    } else {
-      setFormValid(emailState.isvalid && passwordState.isvalid);
-    }
-  }, [emailValid, passValid]);
+
+  useEffect(() => {
+    setFormValid(emailState.isvalid && passwordState.isvalid);
+  }, [emailState, passwordState]);
 
   const emailChangeHandler = (event) => {
     // setEnteredEmail(event.target.value);                          // Whenever email is changing on every keystroke, we are setting the whole email state with its validlity by useReducer
@@ -81,24 +83,24 @@ function Login(props) {
     };
     event.preventDefault();
     localStorage.setItem("LoggedIn", "1");
-    props.onLogIn(userDetails);
+    ctx.onLogIn(userDetails);
     dispatchPassword();
     dispatchEmail();
   };
 
-  let emailClasses = styles.control;
-  if (!emailState.isvalid) {
-    emailClasses += " " + styles.invalid;
-  }
+  // let emailClasses = styles.control;
+  // if (!emailState.isvalid) {
+  //   emailClasses += " " + styles.invalid;
+  // }
 
-  let passwordClasses = styles.control;
-  if (!passwordState.isvalid) {
-    passwordClasses += " " + styles.invalid;
-  }
+  // let passwordClasses = styles.control;
+  // if (!passwordState.isvalid) {
+  //   passwordClasses += " " + styles.invalid;
+  // }
   return (
     <Card className={styles.login}>
       <form onSubmit={formSubmitHandler}>
-        <div className={emailClasses}>
+        <div className={emailState.classes}>
           <label>Email</label>
           <input
             type="text"
@@ -108,7 +110,7 @@ function Login(props) {
           ></input>
         </div>
 
-        <div className={passwordClasses}>
+        <div className={passwordState.classes}>
           <label>Password</label>
           <input
             type="password"
@@ -132,3 +134,19 @@ function Login(props) {
   );
 }
 export default Login;
+
+/*
+
+UseEffect :
+
+used when a state of a variable depends on previous snapshots of 2 other vairables.
+when we need to perform actions (side-effects) : sending http request, accessing browser local storage, etc 
+
+
+UseReducer :
+
+used when we need to combine related states together. For eg emailValue and its validity. We can also combine every state in one big State.
+This helps to prevent buggy code as otherwise some related state would be depending on previous snapshots on other variables and simply using useState could cause bugs.
+
+
+*/
